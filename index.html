@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>School Attendance Scanner</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    h1 { margin-bottom: 5px; }
+
+    #reader {
+      width: 100%;
+      max-width: 500px;
+      margin: 20px auto;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    #result {
+      max-width: 500px;
+      margin: 20px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      font-size: 20px;
+    }
+
+    button, select {
+      font-size: 17px;
+      padding: 12px 16px;
+      margin: 6px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: #1976d2;
+      color: white;
+      border: 0;
+    }
+
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+
+<body>
+  <h1>School Attendance</h1>
+  <p>QR Gate Scanner</p>
+
+  <div>
+    <select id="gate">
+      <option>Gate 1</option>
+      <option>Gate 2</option>
+      <option>Gate 3</option>
+    </select>
+
+    <select id="staff">
+      <option>Gate Staff 1</option>
+      <option>Gate Staff 2</option>
+      <option>Administrator</option>
+    </select>
+  </div>
+
+  <button id="startButton" onclick="startScanner()">Start Camera</button>
+
+  <div id="reader"></div>
+
+  <div id="result">Tap "Start Camera" to begin.</div>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <script>
+    // IMPORTANT:
+    // Replace this with your Apps Script WEB APP /exec URL.
+    const APPS_SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+    let scanner;
+    let processing = false;
+
+    function startScanner() {
+      document.getElementById("startButton").style.display = "none";
+
+      scanner = new Html5Qrcode("reader");
+
+      scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+
+        function(decodedText) {
+          if (processing) return;
+
+          processing = true;
+          scanner.pause(true);
+          processStudent(decodedText);
+        },
+
+        function(errorMessage) {
+          // Normal QR scanning errors are ignored.
+        }
+
+      ).then(function() {
+        document.getElementById("result").innerHTML =
+          "Camera ready — scan Student QR Card";
+      }).catch(function(error) {
+        document.getElementById("result").innerHTML =
+          "<div class='error'><strong>Unable to access camera</strong><br><br>" +
+          error + "</div>";
+      });
+    }
+
+    function processStudent(studentId) {
+      const gate = document.getElementById("gate").value;
+      const staff = document.getElementById("staff").value;
+
+      document.getElementById("result").innerHTML =
+        "Processing " + studentId + "...";
+
+      const callbackName =
+        "scanCallback_" + Date.now();
+
+      window[callbackName] = function(result) {
+        delete window[callbackName];
+
+        if (result.success) {
+          const actionText =
+            result.action === "IN"
+              ? "ENTRY RECORDED"
+              : "EXIT RECORDED";
+
+          document.getElementById("result").innerHTML =
+            "<div class='success'>" +
+            "<strong>" + result.studentName + "</strong><br>" +
+            result.studentClass + "<br><br>" +
+            "<strong>" + actionText + "</strong><br>" +
+            result.time +
+            "</div>";
+        } else {
+          document.getElementById("result").innerHTML =
+            "<div class='error'>" + result.message + "</div>";
+        }
+
+        setTimeout(function() {
+          processing = false;
+          document.getElementById("result").innerHTML =
+            "Camera ready — scan Student QR Card";
+          scanner.resume();
+        }, 2500);
+      };
+
+      const script = document.createElement("script");
+
+      script.src =
+        APPS_SCRIPT_URL +
+        "?api=scan" +
+        "&studentId=" + encodeURIComponent(studentId) +
+        "&gate=" + encodeURIComponent(gate) +
+        "&staff=" + encodeURIComponent(staff) +
+        "&callback=" + encodeURIComponent(callbackName);
+
+      script.onerror = function() {
+        delete window[callbackName];
+
+        document.getElementById("result").innerHTML =
+          "<div class='error'>Could not contact the attendance system.</div>";
+
+        setTimeout(function() {
+          processing = false;
+          scanner.resume();
+        }, 2500);
+      };
+
+      document.body.appendChild(script);
+    }
+  </script>
+</body>
+</html>
