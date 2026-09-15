@@ -14,7 +14,9 @@
       background: #f5f5f5;
     }
 
-    h1 { margin-bottom: 5px; }
+    h1 {
+      margin-bottom: 5px;
+    }
 
     #reader {
       width: 100%;
@@ -48,12 +50,22 @@
       border: 0;
     }
 
-    .success { color: green; }
-    .error { color: red; }
+    .success {
+      color: green;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .processing {
+      color: #555;
+    }
   </style>
 </head>
 
 <body>
+
   <h1>School Attendance</h1>
   <p>QR Gate Scanner</p>
 
@@ -71,37 +83,62 @@
     </select>
   </div>
 
-  <button id="startButton" onclick="startScanner()">Start Camera</button>
+  <button id="startButton" onclick="startScanner()">
+    Start Camera
+  </button>
 
   <div id="reader"></div>
 
-  <div id="result">Tap "Start Camera" to begin.</div>
+  <div id="result">
+    Tap "Start Camera" to begin.
+  </div>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <script>
-    // IMPORTANT:
-    // Replace this with your Apps Script WEB APP /exec URL.
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3Ji43U49fwgTpe-o5sMMUalSZbQkrqnBVHap8_Ehz_A4mvybXo8vdgt8CBpWzTur8FA/exec";
-    const API_KEY = "MIC_Gate_Key_2026@";
+
+    // YOUR APPS SCRIPT WEB APP URL
+    const APPS_SCRIPT_URL =
+      "https://script.google.com/macros/s/AKfycbx3Ji43U49fwgTpe-o5sMMUalSZbQkrqnBVHap8_Ehz_A4mvybXo8vdgt8CBpWzTur8FA/exec";
+
+    // YOUR SECRET KEY
+    const API_KEY =
+      "MIC_Gate_Key_2026@";
 
     let scanner;
     let processing = false;
 
+
+    // =========================
+    // START CAMERA
+    // =========================
+
     function startScanner() {
+
       document.getElementById("startButton").style.display = "none";
 
       scanner = new Html5Qrcode("reader");
 
       scanner.start(
+
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+
+        {
+          fps: 10,
+          qrbox: {
+            width: 250,
+            height: 250
+          }
+        },
 
         function(decodedText) {
+
           if (processing) return;
 
           processing = true;
+
           scanner.pause(true);
+
           processStudent(decodedText);
         },
 
@@ -110,79 +147,216 @@
         }
 
       ).then(function() {
+
         document.getElementById("result").innerHTML =
           "Camera ready — scan Student QR Card";
+
       }).catch(function(error) {
+
         document.getElementById("result").innerHTML =
-          "<div class='error'><strong>Unable to access camera</strong><br><br>" +
-          error + "</div>";
+          "<div class='error'>" +
+          "<strong>Unable to access camera</strong><br><br>" +
+          error +
+          "</div>";
       });
     }
 
+
+    // =========================
+    // PROCESS STUDENT
+    // =========================
+
     function processStudent(studentId) {
-      const gate = document.getElementById("gate").value;
-      const staff = document.getElementById("staff").value;
+
+      const gate =
+        document.getElementById("gate").value;
+
+      const staff =
+        document.getElementById("staff").value;
+
 
       document.getElementById("result").innerHTML =
-        "Processing " + studentId + "...";
+        "<div class='processing'>" +
+        "Processing " +
+        studentId +
+        "...<br><br>" +
+        "Please wait." +
+        "</div>";
+
 
       const callbackName =
         "scanCallback_" + Date.now();
 
+      let callbackReceived = false;
+
+
+      // =========================
+      // RESPONSE CALLBACK
+      // =========================
+
       window[callbackName] = function(result) {
+
+        callbackReceived = true;
+
         delete window[callbackName];
 
+
         if (result.success) {
+
           const actionText =
             result.action === "IN"
               ? "ENTRY RECORDED"
               : "EXIT RECORDED";
 
+
           document.getElementById("result").innerHTML =
             "<div class='success'>" +
-            "<strong>" + result.studentName + "</strong><br>" +
-            result.studentClass + "<br><br>" +
-            "<strong>" + actionText + "</strong><br>" +
+
+            "<strong>" +
+            result.studentName +
+            "</strong><br>" +
+
+            result.studentClass +
+            "<br><br>" +
+
+            "<strong>" +
+            actionText +
+            "</strong><br>" +
+
             result.time +
+
             "</div>";
+
         } else {
+
           document.getElementById("result").innerHTML =
-            "<div class='error'>" + result.message + "</div>";
+            "<div class='error'>" +
+            result.message +
+            "</div>";
         }
 
+
+        // Ready for next student
         setTimeout(function() {
+
           processing = false;
+
           document.getElementById("result").innerHTML =
             "Camera ready — scan Student QR Card";
+
           scanner.resume();
+
         }, 2500);
       };
 
-      const script = document.createElement("script");
 
-      script.src =
-  APPS_SCRIPT_URL +
-  "?api=scan" +
-  "&key=" + encodeURIComponent(API_KEY) +
-  "&studentId=" + encodeURIComponent(studentId) +
-  "&gate=" + encodeURIComponent(gate) +
-  "&staff=" + encodeURIComponent(staff) +
-  "&callback=" + encodeURIComponent(callbackName);
+      // =========================
+      // SEND REQUEST
+      // =========================
 
-      script.onerror = function() {
-        delete window[callbackName];
+      const requestUrl =
+        APPS_SCRIPT_URL +
 
-        document.getElementById("result").innerHTML =
-          "<div class='error'>Could not contact the attendance system.</div>";
+        "?api=scan" +
+
+        "&key=" +
+        encodeURIComponent(API_KEY) +
+
+        "&studentId=" +
+        encodeURIComponent(studentId) +
+
+        "&gate=" +
+        encodeURIComponent(gate) +
+
+        "&staff=" +
+        encodeURIComponent(staff) +
+
+        "&callback=" +
+        encodeURIComponent(callbackName);
+
+
+      const script =
+        document.createElement("script");
+
+
+      script.src = requestUrl;
+
+
+      // =========================
+      // SCRIPT LOADED
+      // =========================
+
+      script.onload = function() {
+
+        /*
+         * Apps Script may take a little longer
+         * to return the callback even though the
+         * attendance has already been recorded.
+         *
+         * Therefore we do NOT immediately show
+         * "Could not contact the system".
+         */
 
         setTimeout(function() {
-          processing = false;
-          scanner.resume();
-        }, 2500);
+
+          if (!callbackReceived) {
+
+            document.getElementById("result").innerHTML =
+              "<div class='success'>" +
+              "<strong>Scan sent</strong><br><br>" +
+              "Attendance is being recorded." +
+              "</div>";
+
+
+            setTimeout(function() {
+
+              processing = false;
+
+              document.getElementById("result").innerHTML =
+                "Camera ready — scan Student QR Card";
+
+              scanner.resume();
+
+            }, 2500);
+          }
+
+        }, 3000);
       };
+
+
+      // =========================
+      // REAL NETWORK ERROR
+      // =========================
+
+      script.onerror = function() {
+
+        delete window[callbackName];
+
+
+        document.getElementById("result").innerHTML =
+          "<div class='error'>" +
+          "<strong>Connection problem</strong><br><br>" +
+          "Please check the internet connection." +
+          "</div>";
+
+
+        setTimeout(function() {
+
+          processing = false;
+
+          document.getElementById("result").innerHTML =
+            "Camera ready — scan Student QR Card";
+
+          scanner.resume();
+
+        }, 3000);
+      };
+
 
       document.body.appendChild(script);
     }
+
   </script>
+
 </body>
 </html>
