@@ -95,9 +95,33 @@ function processStudent(studentId){
  window[callbackName]=result=>{
   callbackReceived=true;delete window[callbackName];
   if(result.success){
-   const actionText=result.action==="IN"?"ENTRY RECORDED":"EXIT RECORDED";
-   document.getElementById("result").innerHTML="<div class='success'><strong>"+result.studentName+"</strong><br>"+result.studentClass+"<br><br><strong>"+actionText+"</strong><br>"+result.time+"</div>";
-  }else document.getElementById("result").innerHTML="<div class='error'>"+result.message+"</div>";
+
+   const actionText = result.message ||
+     (result.action === "IN" ? "ENTRY RECORDED" : "EXIT RECORDED");
+
+   let arrivalText = "";
+
+   if(result.action === "IN" && result.arrivalStatus){
+      arrivalText = "<br>" + result.arrivalStatus;
+   }
+
+   document.getElementById("result").innerHTML =
+     "<div class='success'>" +
+     "<strong>" + result.studentName + "</strong><br>" +
+     result.studentClass +
+     "<br><br>" +
+     "<strong>" + actionText + "</strong>" +
+     arrivalText +
+     "<br>" +
+     result.time +
+     "</div>";
+
+  }else{
+
+   document.getElementById("result").innerHTML =
+     "<div class='error'>" + result.message + "</div>";
+  }
+
   resumeAfterDelay();
  };
  const script=document.createElement("script");
