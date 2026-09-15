@@ -161,12 +161,13 @@
       const script = document.createElement("script");
 
       script.src =
-        APPS_SCRIPT_URL +
-        "?api=scan" +
-        "&studentId=" + encodeURIComponent(studentId) +
-        "&gate=" + encodeURIComponent(gate) +
-        "&staff=" + encodeURIComponent(staff) +
-        "&callback=" + encodeURIComponent(callbackName);
+  APPS_SCRIPT_URL +
+  "?api=scan" +
+  "&key=" + encodeURIComponent(API_KEY) +
+  "&studentId=" + encodeURIComponent(studentId) +
+  "&gate=" + encodeURIComponent(gate) +
+  "&staff=" + encodeURIComponent(staff) +
+  "&callback=" + encodeURIComponent(callbackName);
 
       script.onerror = function() {
         delete window[callbackName];
