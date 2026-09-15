@@ -1,362 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>School Attendance Scanner</title>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-
-    h1 {
-      margin-bottom: 5px;
-    }
-
-    #reader {
-      width: 100%;
-      max-width: 500px;
-      margin: 20px auto;
-      background: white;
-      padding: 10px;
-      border-radius: 10px;
-    }
-
-    #result {
-      max-width: 500px;
-      margin: 20px auto;
-      padding: 20px;
-      background: white;
-      border-radius: 10px;
-      font-size: 20px;
-    }
-
-    button, select {
-      font-size: 17px;
-      padding: 12px 16px;
-      margin: 6px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-
-    button {
-      background: #1976d2;
-      color: white;
-      border: 0;
-    }
-
-    .success {
-      color: green;
-    }
-
-    .error {
-      color: red;
-    }
-
-    .processing {
-      color: #555;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123b73">
+<meta name="description" content="Majesty International College student attendance QR scanner">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<title>MIC Attendance Scanner</title>
+<style>
+:root{--navy:#123b73;--blue:#1f65b5;--bg:#eef5fb;--text:#102f5d}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;color:var(--text);
+background:radial-gradient(circle at 10% 10%,rgba(31,101,181,.10),transparent 28%),radial-gradient(circle at 95% 70%,rgba(232,182,0,.10),transparent 24%),var(--bg);min-height:100vh}
+.topbar{height:58px;background:var(--navy);display:flex;align-items:center;justify-content:flex-end;padding:0 18px}
+.install{display:none;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;border-radius:20px;padding:8px 13px;font-weight:700}
+.brand{text-align:center;padding:20px 16px 10px}.brand img{width:105px;height:105px;object-fit:contain}
+.school-name{margin:8px auto 4px;font-family:Georgia,"Times New Roman",serif;font-size:clamp(25px,7vw,42px);line-height:1.08;font-weight:700;max-width:720px}
+.motto{letter-spacing:2px;font-size:11px;font-weight:700;margin:8px 0 18px}
+.card{width:min(94%,620px);margin:0 auto 24px;background:#fff;border-radius:22px;box-shadow:0 12px 35px rgba(18,59,115,.13);overflow:hidden;border:1px solid rgba(18,59,115,.15)}
+.card-head{background:linear-gradient(135deg,#123b73,#1f65b5);color:#fff;padding:18px 20px;text-align:center}.card-head h2{margin:0;font-size:25px}.card-head p{margin:5px 0 0;opacity:.9}
+.body{padding:18px}#reader{width:100%;min-height:300px;background:#f4f8fc;border-radius:16px;overflow:hidden;border:1px solid #d7e3f0}
+#reader video{border-radius:14px}.controls{display:grid;gap:12px;margin-top:15px}
+select,button{width:100%;min-height:52px;border-radius:13px;border:1px solid #c8d8e9;font-size:17px;padding:10px 14px}
+select{background:#fff;color:var(--text)}button.primary{border:0;background:var(--navy);color:#fff;font-weight:700}button.primary:disabled{opacity:.55}
+#result{margin-top:15px;padding:18px;border-radius:14px;background:#f4f8fc;text-align:center;font-size:18px;min-height:70px}
+.success{color:#16733b}.error{color:#b42318}.statusbar{background:var(--navy);color:#fff;padding:13px 20px;display:flex;justify-content:space-between;font-size:14px;font-weight:700}
+.statusbar span:before{content:"●";margin-right:7px;color:#65d18a}.footer{text-align:center;font-size:12px;padding:0 16px 18px;opacity:.65}
+</style>
 </head>
-
 <body>
-
-  <h1>School Attendance</h1>
-  <p>QR Gate Scanner</p>
-
-  <div>
-    <select id="gate">
-      <option>Gate 1</option>
-      <option>Gate 2</option>
-      <option>Gate 3</option>
-    </select>
-
-    <select id="staff">
-      <option>Gate Staff 1</option>
-      <option>Gate Staff 2</option>
-      <option>Administrator</option>
-    </select>
-  </div>
-
-  <button id="startButton" onclick="startScanner()">
-    Start Camera
-  </button>
-
-  <div id="reader"></div>
-
-  <div id="result">
-    Tap "Start Camera" to begin.
-  </div>
-
-  <script src="https://unpkg.com/html5-qrcode"></script>
-
-  <script>
-
-    // YOUR APPS SCRIPT WEB APP URL
-    const APPS_SCRIPT_URL =
-      "https://script.google.com/macros/s/AKfycbx3Ji43U49fwgTpe-o5sMMUalSZbQkrqnBVHap8_Ehz_A4mvybXo8vdgt8CBpWzTur8FA/exec";
-
-    // YOUR SECRET KEY
-    const API_KEY =
-      "MIC_Gate_Key_2026@";
-
-    let scanner;
-    let processing = false;
-
-
-    // =========================
-    // START CAMERA
-    // =========================
-
-    function startScanner() {
-
-      document.getElementById("startButton").style.display = "none";
-
-      scanner = new Html5Qrcode("reader");
-
-      scanner.start(
-
-        { facingMode: "environment" },
-
-        {
-          fps: 10,
-          qrbox: {
-            width: 250,
-            height: 250
-          }
-        },
-
-        function(decodedText) {
-
-          if (processing) return;
-
-          processing = true;
-
-          scanner.pause(true);
-
-          processStudent(decodedText);
-        },
-
-        function(errorMessage) {
-          // Normal QR scanning errors are ignored.
-        }
-
-      ).then(function() {
-
-        document.getElementById("result").innerHTML =
-          "Camera ready — scan Student QR Card";
-
-      }).catch(function(error) {
-
-        document.getElementById("result").innerHTML =
-          "<div class='error'>" +
-          "<strong>Unable to access camera</strong><br><br>" +
-          error +
-          "</div>";
-      });
-    }
-
-
-    // =========================
-    // PROCESS STUDENT
-    // =========================
-
-    function processStudent(studentId) {
-
-      const gate =
-        document.getElementById("gate").value;
-
-      const staff =
-        document.getElementById("staff").value;
-
-
-      document.getElementById("result").innerHTML =
-        "<div class='processing'>" +
-        "Processing " +
-        studentId +
-        "...<br><br>" +
-        "Please wait." +
-        "</div>";
-
-
-      const callbackName =
-        "scanCallback_" + Date.now();
-
-      let callbackReceived = false;
-
-
-      // =========================
-      // RESPONSE CALLBACK
-      // =========================
-
-      window[callbackName] = function(result) {
-
-        callbackReceived = true;
-
-        delete window[callbackName];
-
-
-        if (result.success) {
-
-          const actionText =
-            result.action === "IN"
-              ? "ENTRY RECORDED"
-              : "EXIT RECORDED";
-
-
-          document.getElementById("result").innerHTML =
-            "<div class='success'>" +
-
-            "<strong>" +
-            result.studentName +
-            "</strong><br>" +
-
-            result.studentClass +
-            "<br><br>" +
-
-            "<strong>" +
-            actionText +
-            "</strong><br>" +
-
-            result.time +
-
-            "</div>";
-
-        } else {
-
-          document.getElementById("result").innerHTML =
-            "<div class='error'>" +
-            result.message +
-            "</div>";
-        }
-
-
-        // Ready for next student
-        setTimeout(function() {
-
-          processing = false;
-
-          document.getElementById("result").innerHTML =
-            "Camera ready — scan Student QR Card";
-
-          scanner.resume();
-
-        }, 2500);
-      };
-
-
-      // =========================
-      // SEND REQUEST
-      // =========================
-
-      const requestUrl =
-        APPS_SCRIPT_URL +
-
-        "?api=scan" +
-
-        "&key=" +
-        encodeURIComponent(API_KEY) +
-
-        "&studentId=" +
-        encodeURIComponent(studentId) +
-
-        "&gate=" +
-        encodeURIComponent(gate) +
-
-        "&staff=" +
-        encodeURIComponent(staff) +
-
-        "&callback=" +
-        encodeURIComponent(callbackName);
-
-
-      const script =
-        document.createElement("script");
-
-
-      script.src = requestUrl;
-
-
-      // =========================
-      // SCRIPT LOADED
-      // =========================
-
-      script.onload = function() {
-
-        /*
-         * Apps Script may take a little longer
-         * to return the callback even though the
-         * attendance has already been recorded.
-         *
-         * Therefore we do NOT immediately show
-         * "Could not contact the system".
-         */
-
-        setTimeout(function() {
-
-          if (!callbackReceived) {
-
-            document.getElementById("result").innerHTML =
-              "<div class='success'>" +
-              "<strong>Scan sent</strong><br><br>" +
-              "Attendance is being recorded." +
-              "</div>";
-
-
-            setTimeout(function() {
-
-              processing = false;
-
-              document.getElementById("result").innerHTML =
-                "Camera ready — scan Student QR Card";
-
-              scanner.resume();
-
-            }, 2500);
-          }
-
-        }, 3000);
-      };
-
-
-      // =========================
-      // REAL NETWORK ERROR
-      // =========================
-
-      script.onerror = function() {
-
-        delete window[callbackName];
-
-
-        document.getElementById("result").innerHTML =
-          "<div class='error'>" +
-          "<strong>Connection problem</strong><br><br>" +
-          "Please check the internet connection." +
-          "</div>";
-
-
-        setTimeout(function() {
-
-          processing = false;
-
-          document.getElementById("result").innerHTML =
-            "Camera ready — scan Student QR Card";
-
-          scanner.resume();
-
-        }, 3000);
-      };
-
-
-      document.body.appendChild(script);
-    }
-
-  </script>
-
+<div class="topbar"><button id="installButton" class="install">Install App</button></div>
+<section class="brand">
+<img src="icon-512.png" alt="Majesty International College logo">
+<div class="school-name">Majesty International College, Lokoja</div>
+<div class="motto">EFFULGENCE OF KNOWLEDGE AND CHARACTER</div>
+</section>
+<main class="card">
+<div class="card-head"><h2>▣ &nbsp; Scan Student QR Code</h2><p>For Attendance</p></div>
+<div class="body">
+<div id="reader"></div>
+<div class="controls">
+<select id="gate" aria-label="Select gate"><option>Gate 1</option><option>Gate 2</option><option>Gate 3</option></select>
+<select id="staff" aria-label="Select gate staff"><option>Gate Staff 1</option><option>Gate Staff 2</option><option>Administrator</option></select>
+<button id="startButton" class="primary" onclick="startScanner()">Ready to Scan</button>
+</div>
+<div id="result">Select the gate and staff, then tap “Ready to Scan”.</div>
+</div>
+<div class="statusbar"><span>Connected</span><span>Secure</span></div>
+</main>
+<div class="footer">MIC Student Attendance System</div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+const APPS_SCRIPT_URL="https://script.google.com/macros/s/AKfycbx3Ji43U49fwgTpe-o5sMMUalSZbQkrqnBVHap8_Ehz_A4mvybXo8vdgt8CBpWzTur8FA/exec";
+const API_KEY="MIC_Gate_Key_2026@";
+let scanner,processing=false,deferredInstallPrompt=null;
+
+const savedGate=localStorage.getItem("mic_gate"),savedStaff=localStorage.getItem("mic_staff");
+if(savedGate)document.getElementById("gate").value=savedGate;
+if(savedStaff)document.getElementById("staff").value=savedStaff;
+document.getElementById("gate").addEventListener("change",e=>localStorage.setItem("mic_gate",e.target.value));
+document.getElementById("staff").addEventListener("change",e=>localStorage.setItem("mic_staff",e.target.value));
+
+window.addEventListener("beforeinstallprompt",e=>{
+ e.preventDefault();deferredInstallPrompt=e;document.getElementById("installButton").style.display="block";
+});
+document.getElementById("installButton").addEventListener("click",async()=>{
+ if(!deferredInstallPrompt)return;
+ deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;
+ document.getElementById("installButton").style.display="none";
+});
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));
+
+function startScanner(){
+ if(scanner)return;
+ document.getElementById("startButton").disabled=true;
+ scanner=new Html5Qrcode("reader");
+ scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:250,height:250}},
+ decodedText=>{
+  if(processing)return;
+  processing=true;scanner.pause(true);processStudent(decodedText);
+ },()=>{}).then(()=>{
+  document.getElementById("result").innerHTML="Camera ready — scan Student QR Card";
+ }).catch(error=>{
+  document.getElementById("result").innerHTML="<div class='error'><strong>Unable to access camera</strong><br><br>"+error+"</div>";
+  document.getElementById("startButton").disabled=false;scanner=null;
+ });
+}
+
+function processStudent(studentId){
+ const gate=document.getElementById("gate").value,staff=document.getElementById("staff").value;
+ document.getElementById("result").innerHTML="Processing "+studentId+"...";
+ const callbackName="scanCallback_"+Date.now();let callbackReceived=false;
+ window[callbackName]=result=>{
+  callbackReceived=true;delete window[callbackName];
+  if(result.success){
+   const actionText=result.action==="IN"?"ENTRY RECORDED":"EXIT RECORDED";
+   document.getElementById("result").innerHTML="<div class='success'><strong>"+result.studentName+"</strong><br>"+result.studentClass+"<br><br><strong>"+actionText+"</strong><br>"+result.time+"</div>";
+  }else document.getElementById("result").innerHTML="<div class='error'>"+result.message+"</div>";
+  resumeAfterDelay();
+ };
+ const script=document.createElement("script");
+ script.src=APPS_SCRIPT_URL+"?api=scan&key="+encodeURIComponent(API_KEY)+"&studentId="+encodeURIComponent(studentId)+"&gate="+encodeURIComponent(gate)+"&staff="+encodeURIComponent(staff)+"&callback="+encodeURIComponent(callbackName);
+ script.onload=()=>setTimeout(()=>{
+  if(!callbackReceived){
+   document.getElementById("result").innerHTML="<div class='success'><strong>Scan sent</strong><br>Attendance is being recorded.</div>";
+   resumeAfterDelay();
+  }
+ },3000);
+ script.onerror=()=>{
+  delete window[callbackName];
+  document.getElementById("result").innerHTML="<div class='error'>Connection problem. Please try the scan again.</div>";
+  resumeAfterDelay();
+ };
+ document.body.appendChild(script);
+}
+function resumeAfterDelay(){
+ setTimeout(()=>{processing=false;document.getElementById("result").innerHTML="Camera ready — scan Student QR Card";if(scanner)scanner.resume()},2500);
+}
+</script>
 </body>
 </html>
