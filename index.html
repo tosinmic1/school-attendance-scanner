@@ -54,13 +54,164 @@ select{background:#fff;color:var(--text)}button.primary{border:0;background:var(
 <script>
 const APPS_SCRIPT_URL="https://script.google.com/macros/s/AKfycbx3Ji43U49fwgTpe-o5sMMUalSZbQkrqnBVHap8_Ehz_A4mvybXo8vdgt8CBpWzTur8FA/exec";
 const API_KEY="MIC_Gate_Key_2026@";
+
 let scanner,processing=false,deferredInstallPrompt=null;
 
-const savedGate=localStorage.getItem("mic_gate"),savedStaff=localStorage.getItem("mic_staff");
-if(savedGate)document.getElementById("gate").value=savedGate;
-if(savedStaff)document.getElementById("staff").value=savedStaff;
-document.getElementById("gate").addEventListener("change",e=>localStorage.setItem("mic_gate",e.target.value));
-document.getElementById("staff").addEventListener("change",e=>localStorage.setItem("mic_staff",e.target.value));
+
+// ================================================
+// LOAD SCHOOL SETTINGS
+// ================================================
+
+async function loadSchoolSettings(){
+
+  try{
+
+    const response =
+      await fetch(
+        APPS_SCRIPT_URL + "?api=config"
+      );
+
+    const config =
+      await response.json();
+
+    if(!config.success){
+      return;
+    }
+
+    // School name
+    if(config.schoolName){
+
+      document.querySelector(
+        ".school-name"
+      ).textContent =
+        config.schoolName;
+    }
+
+    // School motto
+    if(config.schoolMotto){
+
+      document.querySelector(
+        ".motto"
+      ).textContent =
+        config.schoolMotto;
+    }
+
+    // Gates
+    if(config.gates){
+
+      const gateSelect =
+        document.getElementById("gate");
+
+      gateSelect.innerHTML="";
+
+      config.gates.forEach(function(gate){
+
+        const option =
+          document.createElement("option");
+
+        option.value=gate;
+        option.textContent=gate;
+
+        gateSelect.appendChild(option);
+
+      });
+    }
+
+    // Staff
+    if(config.staff){
+
+      const staffSelect =
+        document.getElementById("staff");
+
+      staffSelect.innerHTML="";
+
+      config.staff.forEach(function(staff){
+
+        const option =
+          document.createElement("option");
+
+        option.value=staff;
+        option.textContent=staff;
+
+        staffSelect.appendChild(option);
+
+      });
+    }
+
+    // Restore previously selected gate
+    const savedGate =
+      localStorage.getItem("mic_gate");
+
+    if(savedGate){
+
+      const gateSelect =
+        document.getElementById("gate");
+
+      if(
+        [...gateSelect.options]
+        .some(option => option.value === savedGate)
+      ){
+        gateSelect.value=savedGate;
+      }
+    }
+
+    // Restore previously selected staff
+    const savedStaff =
+      localStorage.getItem("mic_staff");
+
+    if(savedStaff){
+
+      const staffSelect =
+        document.getElementById("staff");
+
+      if(
+        [...staffSelect.options]
+        .some(option => option.value === savedStaff)
+      ){
+        staffSelect.value=savedStaff;
+      }
+    }
+
+  }catch(error){
+
+    console.log(
+      "Could not load school settings:",
+      error
+    );
+
+  }
+}
+
+
+// ================================================
+// SAVE SELECTED GATE / STAFF
+// ================================================
+
+document
+  .getElementById("gate")
+  .addEventListener(
+    "change",
+    e =>
+      localStorage.setItem(
+        "mic_gate",
+        e.target.value
+      )
+  );
+
+document
+  .getElementById("staff")
+  .addEventListener(
+    "change",
+    e =>
+      localStorage.setItem(
+        "mic_staff",
+        e.target.value
+      )
+  );
+
+
+// Load settings when app opens
+loadSchoolSettings();
 
 window.addEventListener("beforeinstallprompt",e=>{
  e.preventDefault();deferredInstallPrompt=e;document.getElementById("installButton").style.display="block";
